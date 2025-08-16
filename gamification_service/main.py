@@ -9,12 +9,12 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 def main():
     config = {}
-    with open(os.path.join(os.path.dirname(__file__), '../shared_config/config.json')) as f:
+    with open(os.path.join(os.path.dirname(__file__), 'shared_config/config.json')) as f:
         config = json.load(f)
 
     repo = Repository()
     game_service = GameService(
-        game_rules_path=os.path.join(os.path.dirname(__file__), '../shared_config/game_rules.yml'),
+        game_rules_path=os.path.join(os.path.dirname(__file__), 'shared_config/game_rules.yml'),
         repo=repo
     )
 

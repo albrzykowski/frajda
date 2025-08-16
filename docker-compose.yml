@@ -1,8 +1,9 @@
-version: '3.7'
+version: '3.8'
 
 services:
   couchdb:
     image: docker.io/bitnami/couchdb:3
+    container_name: couchdb
     environment:
       - COUCHDB_USER=admin
       - COUCHDB_PASSWORD=couchdb
@@ -12,15 +13,23 @@ services:
       - '9100:9100'
     volumes:
       - couchdb_data:/bitnami/couchdb
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://admin:couchdb@localhost:5984"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
       
   db_initializer:
     image: curlimages/curl:7.83.1
+    container_name: db_initializer
     depends_on:
-      - couchdb
+      couchdb:
+        condition: service_healthy
     command: >
       /bin/sh -c "
-      sleep 10 &&
-      curl -X PUT http://admin:couchdb@couchdb:5984/players
+      echo 'Warting for CouchDB...' &&
+      curl -X PUT http://admin:couchdb@couchdb:5984/players &&
+      echo 'Database initialized.'
       "
 
   rabbitmq:
@@ -35,6 +44,44 @@ services:
       RABBITMQ_DEFAULT_PASS: TwojeSilneHaslo
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "status"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+  
+  api_gateway:
+    build:
+      context: .
+      dockerfile: ./api_gateway/Dockerfile
+    container_name: api_gateway
+    ports:
+      - "8000:8000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - RABBITMQ_URL=amqp://gamification_engine:TwojeSilneHaslo@rabbitmq:5672/%2F
+    
+  gamification_service:
+    build:
+      context: .
+      dockerfile: ./gamification_service/Dockerfile
+    container_name: gamification_service
+    ports:
+      - "8001:8001"
+    environment:
+      COUCHDB_HOST: "couchdb"
+      COUCHDB_PORT: "5984"
+      RABBITMQ_HOST: "rabbitmq"
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: "gamification_engine"
+      RABBITMQ_PASS: "TwojeSilneHaslo"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      couchdb:
+        condition: service_healthy
 
 volumes:
   couchdb_data:

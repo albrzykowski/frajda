@@ -7,7 +7,7 @@ from flask import Flask, request, jsonify
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 config = {}
-with open(os.path.join(os.path.dirname(__file__), '../shared_config/config.json')) as f:
+with open(os.path.join(os.path.dirname(__file__), 'shared_config/config.json')) as f:
     config = json.load(f)
 
 app = Flask(__name__)
@@ -37,4 +37,4 @@ def handle_action():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=8000)

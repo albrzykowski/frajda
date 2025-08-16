@@ -1,10 +1,10 @@
 {
   "db_connection": {
-    "url": "http://admin:couchdb@127.0.0.1:5984",
+    "url": "http://admin:couchdb@couchdb:5984",
     "db_name": "players"
   },
   "message_queue": {
-    "url": "amqp://gamification_engine:TwojeSilneHaslo@127.0.0.1:5672/",
+    "url": "amqp://gamification_engine:TwojeSilneHaslo@rabbitmq:5672/",
     "exchange": "gamification_events",
     "queue": "gamification_queue"
   }

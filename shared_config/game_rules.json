@@ -1,0 +1,89 @@
+{
+  "elements": [
+    {
+      "id": "fragment_czasu_a",
+      "name": "Fragment Czasu A",
+      "rarity": "common"
+    },
+    {
+      "id": "fragment_czasu_b",
+      "name": "Fragment Czasu B",
+      "rarity": "rare"
+    },
+    {
+      "id": "fragment_czasu_c",
+      "name": "Fragment Czasu C",
+      "rarity": "epic"
+    },
+    {
+      "id": "krysztal_mocy",
+      "name": "Kryształ Mocy",
+      "rarity": "common"
+    },
+    {
+      "id": "krysztal_milosci",
+      "name": "Kryształ Miłości",
+      "rarity": "rare"
+    }
+  ],
+  "rarity_probabilities": {
+    "common": 0.7,
+    "rare": 0.25,
+    "epic": 0.05
+  },
+  "quests": [
+    {
+      "id": "quest_1_wir_czasu",
+      "name": "Wieczny Wir Czasu",
+      "description": "Zbierz wszystkie trzy Artefakty Czasu, aby uciec ze świątyni.",
+      "type": "collection",
+      "repeatable": false,
+      "required_items": [
+        { "item_id": "fragment_czasu_a", "quantity": 1 },
+        { "item_id": "fragment_czasu_b", "quantity": 1 },
+        { "item_id": "fragment_czasu_c", "quantity": 1 }
+      ],
+      "reward": {
+        "type": "title",
+        "value": "Władca Czasu",
+        "message": "Udało Ci się! Odkryłeś tajemnicę świątyni i zdobywasz tytuł 'Władcy Czasu'."
+      }
+    },
+    {
+      "id": "quest_2_odkrywca",
+      "name": "Odkrywca",
+      "description": "Odwiedź ukryty ołtarz. Wyzwanie można powtarzać wielokrotnie.",
+      "type": "first_to_obtain",
+      "repeatable": true,
+      "required_item": "krysztal_mocy",
+      "reward": {
+        "type": "title",
+        "value": "Odkrywca Reliktów",
+        "message": "Udało Ci się! Otrzymujesz tytuł 'Odkrywcy Reliktów'!"
+      }
+    },
+    {
+      "id": "quest_3_lowca_tajemnic",
+      "name": "Łowca Tajemnic",
+      "description": "Zbierz 1 przedmiot 'rare' i 1 'epic'.",
+      "type": "rarity_collection",
+      "repeatable": false,
+      "required_rarity": {
+        "rare": 1,
+        "epic": 1
+      },
+      "reward": {
+        "type": "title",
+        "value": "Strażnik Tajemnic",
+        "message": "Jesteś Strażnikiem Tajemnic! Otrzymujesz tytuł za zebranie cennych artefaktów."
+      }
+    }
+  ],
+  "actions_to_items_mapping": {
+    "akcja_1_odwiedz_komnate": ["fragment_czasu_a", "fragment_czasu_b", "fragment_czasu_c"],
+    "akcja_2_zapal_swiece": "fragment_czasu_b",
+    "akcja_3_odczytaj_inskrypcje": "fragment_czasu_c",
+    "akcja_4_odkryj_oltarz": "krysztal_mocy",
+    "akcja_5_aktywuj_portal": "krysztal_milosci"
+  }
+}

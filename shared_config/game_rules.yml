@@ -1,0 +1,79 @@
+elements:
+  - id: fragment_czasu_a
+    name: Fragment Czasu A
+    rarity: common
+  - id: fragment_czasu_b
+    name: Fragment Czasu B
+    rarity: rare
+  - id: fragment_czasu_c
+    name: Fragment Czasu C
+    rarity: epic
+  - id: krysztal_mocy
+    name: Kryształ Mocy
+    rarity: common
+  - id: krysztal_milosci
+    name: Kryształ Miłości
+    rarity: rare
+
+rarity_probabilities:
+  common: 0.7
+  rare: 0.25
+  epic: 0.05
+
+rewards:
+  - id: reward_wladca_czasu
+    type: title
+    value: "Władca Czasu"
+    message: "Udało Ci się! Odkryłeś tajemnicę świątyni i zdobywasz tytuł 'Władcy Czasu'."
+  - id: reward_odkrywca_reliktow
+    type: title
+    value: "Odkrywca Reliktów"
+    message: "Udało Ci się! Otrzymujesz tytuł 'Odkrywcy Reliktów'!"
+  - id: reward_straznik_tajemnic
+    type: title
+    value: "Strażnik Tajemnic"
+    message: "Jesteś Strażnikiem Tajemnic! Otrzymujesz tytuł za zebranie cennych artefaktów."
+  - id: reward_monety_500
+    type: currency
+    value: 500
+    message: "Otrzymujesz 500 monet za ukończenie misji!"
+
+helpers:
+  - id: has_item
+    args: ["item_id", "quantity"]
+    expression: "inventory.get(item_id, 0) >= quantity"
+  - id: has_rarity
+    args: ["rarity", "quantity"]
+    expression: "rarity_counts.get(rarity, 0) >= quantity"
+
+quests:
+  - id: quest_1_wir_czasu
+    name: Wieczny Wir Czasu
+    description: "Zbierz wszystkie trzy Artefakty Czasu, aby uciec ze świątyni."
+    repeatable: false
+    rule: "has_item('fragment_czasu_a', 1) && has_item('fragment_czasu_b', 1) && has_item('fragment_czasu_c', 1)"
+    reward: "reward_wladca_czasu"
+  
+  - id: quest_2_odkrywca
+    name: Odkrywca
+    description: "Odwiedź ukryty ołtarz. Wyzwanie można powtarzać wielokrotnie."
+    repeatable: true
+    rule: "has_item('krysztal_mocy', 1)"
+    reward: "reward_odkrywca_reliktow"
+  
+  - id: quest_3_lowca_tajemnic
+    name: Łowca Tajemnic
+    description: "Zbierz 1 przedmiot 'rare' i 1 'epic'."
+    repeatable: false
+    rule: "has_rarity('rare', 1) && has_rarity('epic', 1)"
+    reward: "reward_straznik_tajemnic"
+
+actions_to_items_mapping:
+  akcja_1_odwiedz_komnate:
+    - fragment_czasu_a
+    - fragment_czasu_b
+    - fragment_czasu_c
+  akcja_2_zapal_swiece: "fragment_czasu_b"
+  akcja_3_odczytaj_inskrypcje: "fragment_czasu_c"
+  akcja_4_odkryj_oltarz: "krysztal_mocy"
+  akcja_5_aktywuj_portal: "krysztal_milosci"

@@ -1,0 +1,41 @@
+version: '3.7'
+
+services:
+  couchdb:
+    image: docker.io/bitnami/couchdb:3
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=couchdb
+    ports:
+      - '5984:5984'
+      - '4369:4369'
+      - '9100:9100'
+    volumes:
+      - couchdb_data:/bitnami/couchdb
+      
+  db_initializer:
+    image: curlimages/curl:7.83.1
+    depends_on:
+      - couchdb
+    command: >
+      /bin/sh -c "
+      sleep 10 &&
+      curl -X PUT http://admin:couchdb@couchdb:5984/players
+      "
+
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: gamification_engine
+      RABBITMQ_DEFAULT_PASS: TwojeSilneHaslo
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
+volumes:
+  couchdb_data:
+  rabbitmq-data:

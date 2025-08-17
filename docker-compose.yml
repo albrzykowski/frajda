@@ -5,8 +5,8 @@ services:
     image: docker.io/bitnami/couchdb:3
     container_name: couchdb
     environment:
-      - COUCHDB_USER=admin
-      - COUCHDB_PASSWORD=couchdb
+      COUCHDB_USER: ${COUCHDB_USER}
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
     ports:
       - '5984:5984'
       - '4369:4369'
@@ -14,7 +14,7 @@ services:
     volumes:
       - couchdb_data:/bitnami/couchdb
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://admin:couchdb@localhost:5984"]
+      test: ["CMD", "curl", "-f", "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@localhost:5984"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -27,8 +27,8 @@ services:
         condition: service_healthy
     command: >
       /bin/sh -c "
-      echo 'Warting for CouchDB...' &&
-      curl -X PUT http://admin:couchdb@couchdb:5984/players &&
+      echo 'Waiting for CouchDB...' &&
+      curl -X PUT http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb:5984/players &&
       echo 'Database initialized.'
       "
 
@@ -40,8 +40,8 @@ services:
       - "5672:5672"
       - "15672:15672"
     environment:
-      RABBITMQ_DEFAULT_USER: gamification_engine
-      RABBITMQ_DEFAULT_PASS: TwojeSilneHaslo
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     healthcheck:
@@ -61,7 +61,7 @@ services:
       rabbitmq:
         condition: service_healthy
     environment:
-      - RABBITMQ_URL=amqp://gamification_engine:TwojeSilneHaslo@rabbitmq:5672/%2F
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672/%2F
     
   gamification_service:
     build:
@@ -73,10 +73,12 @@ services:
     environment:
       COUCHDB_HOST: "couchdb"
       COUCHDB_PORT: "5984"
+      COUCHDB_USER: ${COUCHDB_USER}
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
       RABBITMQ_HOST: "rabbitmq"
       RABBITMQ_PORT: "5672"
-      RABBITMQ_USER: "gamification_engine"
-      RABBITMQ_PASS: "TwojeSilneHaslo"
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
     depends_on:
       rabbitmq:
         condition: service_healthy

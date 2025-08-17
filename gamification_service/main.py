@@ -46,7 +46,6 @@ def main():
             response_message = json.dumps({
                 "player_id": event['player_id'],
                 "result": result,
-                "tets": "XXXX",
             })
             response_channel.basic_publish(
                 exchange='',

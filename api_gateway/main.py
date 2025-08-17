@@ -2,13 +2,11 @@ import os
 import logging
 from threading import Thread
 import json
-
-import eventlet
-eventlet.monkey_patch()
-
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO
 import pika
+import eventlet
+eventlet.monkey_patch()
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -64,9 +62,7 @@ def handle_action():
         return jsonify({"error": str(e)}), 500
 
 def on_message(ch, method, properties, body):
-    logging.info("----------- 3")
     try:
-        logging.info("----------- 4")
         response = json.loads(body)
         socketio.emit('notification', response)
         ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -75,9 +71,7 @@ def on_message(ch, method, properties, body):
         logging.error(f"Error handling message: {e}")
 
 def start_listening():
-    logging.info("----------- 1")
     try:
-        logging.info("----------- 2")
         consumer_conn, consumer_ch = get_channel()
         consumer_ch.basic_consume(
             queue=RABBITMQ_RESPONSE_QUEUE,
@@ -93,7 +87,6 @@ eventlet.spawn(start_listening)
 logging.info("Background listener task spawned with eventlet.")
 
 if __name__ == '__main__':
-    logging.info("This block is for local development only. Gunicorn will ignore it.")
     logging.info("Starting listener thread...")
     listener_thread = Thread(target=start_listening)
     listener_thread.daemon = True

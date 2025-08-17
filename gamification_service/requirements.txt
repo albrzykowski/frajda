@@ -2,3 +2,4 @@ pika
 couchdb
 pyyaml
 pysel-lang
+dotenv

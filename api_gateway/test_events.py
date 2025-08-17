@@ -1,6 +1,6 @@
-import socket
 import json
 import threading
+import socket
 import socketio
 
 # --- HTTP client using raw socket ---
@@ -41,38 +41,37 @@ def send_request(host="localhost", port=8000, path="/action"):
         data = json.loads(body)
         print("Parsed JSON:", data)
     except Exception:
-        pass
+        print("Failed to parse JSON.")
 
 
 # --- WebSocket (Socket.IO) client ---
 def start_socketio_client():
     sio = socketio.Client()
 
-    @sio.on("connect")
-    def on_connect():
+    @sio.event
+    def connect():
         print("Connected to Socket.IO server.")
-        send_request()  # <- wyślij żądanie dopiero po połączeniu
+        # Send HTTP request once connected
+        send_request()
 
     @sio.on("notification")
     def on_notification(data):
         print("=== ASYNC NOTIFICATION ===")
         print(data)
 
-    @sio.on("disconnect")
-    def on_disconnect():
+    @sio.event
+    def disconnect():
         print("Disconnected from Socket.IO server.")
 
+    # Keep connection alive
     sio.connect("http://localhost:8000", transports=['websocket'])
     sio.wait()
 
 
 if __name__ == "__main__":
     # Start WebSocket listener in background thread
-    t = threading.Thread(target=start_socketio_client, daemon=True)
-    t.start()
+    ws_thread = threading.Thread(target=start_socketio_client, daemon=True)
+    ws_thread.start()
 
-    # Send HTTP request
-    send_request()
-
-    # Keep main thread alive so WebSocket can receive notifications
-    t.join()
+    # Keep main thread alive
+    ws_thread.join()

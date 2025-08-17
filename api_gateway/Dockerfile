@@ -10,4 +10,4 @@ RUN pip install --no-cache-dir -r api_gateway/requirements.txt
 
 WORKDIR /app/api_gateway
 
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8000", "main:app"]
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8000", "main:app", "--worker-class", "eventlet"]

@@ -1,22 +1,26 @@
 import couchdb
 import os
-import json
 import logging
+from dotenv import load_dotenv
 
 class Repository:
     def __init__(self):
-        config = {}
-        with open(os.path.join(os.path.dirname(__file__), '../shared_config/config.json')) as f:
-            config = json.load(f)
+        # Load environment variables
+        load_dotenv()
 
-        db_config = config['db_connection']
-        url = db_config['url']
-        
+        couchdb_user = os.getenv('COUCHDB_USER')
+        couchdb_pass = os.getenv('COUCHDB_PASSWORD')
+        couchdb_host = os.getenv('COUCHDB_HOST', 'localhost')
+        couchdb_port = int(os.getenv('COUCHDB_PORT', 5984))
+        db_name = os.getenv('COUCHDB_DB', 'players')
+
+        url = f"http://{couchdb_user}:{couchdb_pass}@{couchdb_host}:{couchdb_port}/"
+
         try:
             couch = couchdb.Server(url)
-            self.db = couch[db_config['db_name']]
+            self.db = couch[db_name]
         except couchdb.http.ResourceNotFound:
-            logging.error(f"Database '{db_config['db_name']}' not found. Please create it manually.")
+            logging.error(f"Database '{db_name}' not found. Please create it manually.")
             raise
 
     def get_player(self, player_id: str):

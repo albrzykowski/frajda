@@ -1,7 +1,7 @@
-import json
 import os
 import logging
 from threading import Thread
+import json
 
 import eventlet
 eventlet.monkey_patch()
@@ -12,27 +12,28 @@ import pika
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Load configuration
-config_path = os.path.join(os.path.dirname(__file__), '../shared_config/config.json')
-with open(config_path) as f:
-    config = json.load(f)
+RABBITMQ_USER = os.environ.get('RABBITMQ_USER')
+RABBITMQ_PASS = os.environ.get('RABBITMQ_PASS')
+RABBITMQ_HOST = os.environ.get('RABBITMQ_HOST', 'rabbitmq')
+RABBITMQ_PORT = os.environ.get('RABBITMQ_PORT', '5672')
+RABBITMQ_QUEUE = os.environ.get('RABBITMQ_QUEUE', 'actions')
+RABBITMQ_RESPONSE_QUEUE = os.environ.get('RABBITMQ_RESPONSE_QUEUE', 'responses')
+RABBITMQ_VHOST = os.getenv("RABBITMQ_VHOST", "/")
 
-# Flask app with SocketIO
+rabbitmq_url = f"amqp://{RABBITMQ_USER}:{RABBITMQ_PASS}@{RABBITMQ_HOST}:{RABBITMQ_PORT}{RABBITMQ_VHOST}"
+
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
-# RabbitMQ connection parameters
-connection_params = pika.URLParameters(config['message_queue']['url'])
+connection_params = pika.URLParameters(rabbitmq_url)
 
-# --- Utility to create a new RabbitMQ connection and channel ---
 def get_channel():
     conn = pika.BlockingConnection(connection_params)
     ch = conn.channel()
-    ch.queue_declare(queue=config['message_queue']['queue'], durable=True)
-    ch.queue_declare(queue=config['message_queue']['response_queue'], durable=True)
+    ch.queue_declare(queue=RABBITMQ_QUEUE, durable=True)
+    ch.queue_declare(queue=RABBITMQ_RESPONSE_QUEUE, durable=True)
     return conn, ch
 
-# HTTP endpoint to publish action
 @app.route('/action', methods=['POST'])
 def handle_action():
     try:
@@ -41,17 +42,16 @@ def handle_action():
             logging.error("Invalid input data.")
             return jsonify({"error": "Invalid input data"}), 400
 
-        message = json.dumps({
+        message = {
             "player_id": data['player_id'],
             "action": data['action']
-        })
+        }
 
-        # Create a new connection and channel for this request
         conn, ch = get_channel()
         ch.basic_publish(
             exchange='',
-            routing_key=config['message_queue']['queue'],
-            body=message,
+            routing_key=RABBITMQ_QUEUE,
+            body=json.dumps(message),
             properties=pika.BasicProperties(delivery_mode=2)
         )
         conn.close()
@@ -63,9 +63,10 @@ def handle_action():
         logging.error(f"Error processing request: {e}")
         return jsonify({"error": str(e)}), 500
 
-# RabbitMQ consumer callback
 def on_message(ch, method, properties, body):
+    logging.info("----------- 3")
     try:
+        logging.info("----------- 4")
         response = json.loads(body)
         socketio.emit('notification', response)
         ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -73,12 +74,13 @@ def on_message(ch, method, properties, body):
     except Exception as e:
         logging.error(f"Error handling message: {e}")
 
-# RabbitMQ listener in a separate thread
 def start_listening():
+    logging.info("----------- 1")
     try:
+        logging.info("----------- 2")
         consumer_conn, consumer_ch = get_channel()
         consumer_ch.basic_consume(
-            queue=config['message_queue']['response_queue'],
+            queue=RABBITMQ_RESPONSE_QUEUE,
             on_message_callback=on_message,
             auto_ack=False
         )
@@ -87,9 +89,14 @@ def start_listening():
     except Exception as e:
         logging.error(f"Error in RabbitMQ listener: {e}")
 
-# Start listener and run SocketIO server
+eventlet.spawn(start_listening)
+logging.info("Background listener task spawned with eventlet.")
+
 if __name__ == '__main__':
+    logging.info("This block is for local development only. Gunicorn will ignore it.")
+    logging.info("Starting listener thread...")
     listener_thread = Thread(target=start_listening)
     listener_thread.daemon = True
     listener_thread.start()
+    logging.info("Starting SocketIO server...")
     socketio.run(app, host='0.0.0.0', port=8000, debug=True)

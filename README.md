@@ -9,7 +9,36 @@ Frajda is designed as an asynchronous gamification engine. The core flow is:
 4. **Notification**: The service publishes the result to a response queue in RabbitMQ.
 5. **Real-time Update**: `api_gateway` consumes messages from the response queue and emits notifications to connected clients via Socket.IO.
 
- ![ alt text](/assets/mermaid-drawing.png)
+### Sequence Diagram
+```marmaid
+sequenceDiagram
+    participant Client as Client
+    participant API as API Gateway
+    participant MQ as RabbitMQ
+    participant GS as Gamification Service
+    participant DB as CouchDB
+
+    Client->>API: POST /action (player_id, action) 
+    Note right of Client: HTTP request (sync)
+
+    API->>MQ: Publish message to "actions" queue
+    Note right of API: Async publish
+
+    MQ-->>GS: Deliver message from "actions" queue
+    Note right of MQ: Async delivery
+
+    GS->>DB: Update player state (CRUD)
+    Note right of GS: Sync DB operation
+
+    GS->>MQ: Publish result to "responses" queue
+    Note right of GS: Async publish
+
+    MQ-->>API: Deliver message from "responses" queue
+    Note right of MQ: Async delivery
+
+    API->>Client: Send WebSocket notification / HTTP 202 response
+    Note right of API: HTTP (sync) / WebSocket (async)
+```
 
 ## Running with Docker
 1. Ensure Docker and Docker Compose are installed.

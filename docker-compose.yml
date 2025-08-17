@@ -50,38 +50,38 @@ services:
       timeout: 10s
       retries: 5
   
-  api_gateway:
-    build:
-      context: .
-      dockerfile: ./api_gateway/Dockerfile
-    container_name: api_gateway
-    ports:
-      - "8000:8000"
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    environment:
-      - RABBITMQ_URL=amqp://gamification_engine:TwojeSilneHaslo@rabbitmq:5672/%2F
+  # api_gateway:
+  #   build:
+  #     context: .
+  #     dockerfile: ./api_gateway/Dockerfile
+  #   container_name: api_gateway
+  #   ports:
+  #     - "8000:8000"
+  #   depends_on:
+  #     rabbitmq:
+  #       condition: service_healthy
+  #   environment:
+  #     - RABBITMQ_URL=amqp://gamification_engine:TwojeSilneHaslo@rabbitmq:5672/%2F
     
-  gamification_service:
-    build:
-      context: .
-      dockerfile: ./gamification_service/Dockerfile
-    container_name: gamification_service
-    ports:
-      - "8001:8001"
-    environment:
-      COUCHDB_HOST: "couchdb"
-      COUCHDB_PORT: "5984"
-      RABBITMQ_HOST: "rabbitmq"
-      RABBITMQ_PORT: "5672"
-      RABBITMQ_USER: "gamification_engine"
-      RABBITMQ_PASS: "TwojeSilneHaslo"
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      couchdb:
-        condition: service_healthy
+  # gamification_service:
+  #   build:
+  #     context: .
+  #     dockerfile: ./gamification_service/Dockerfile
+  #   container_name: gamification_service
+  #   ports:
+  #     - "8001:8001"
+  #   environment:
+  #     COUCHDB_HOST: "couchdb"
+  #     COUCHDB_PORT: "5984"
+  #     RABBITMQ_HOST: "rabbitmq"
+  #     RABBITMQ_PORT: "5672"
+  #     RABBITMQ_USER: "gamification_engine"
+  #     RABBITMQ_PASS: "TwojeSilneHaslo"
+  #   depends_on:
+  #     rabbitmq:
+  #       condition: service_healthy
+  #     couchdb:
+  #       condition: service_healthy
 
 volumes:
   couchdb_data:

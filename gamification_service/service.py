@@ -2,7 +2,7 @@ import yaml
 import pysel
 import logging
 import random
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 class GameService:
     def __init__(self, game_rules_path: str, repo: Any):
@@ -29,8 +29,12 @@ class GameService:
             helpers[helper_id] = helper_wrapper
         return helpers
 
-    def process_action(self, player_id: str, action: str):
+    def process_action(self, player_id: str, action: str) -> Dict[str, List[Dict]]:
+        """
+        Przetwarza akcję gracza i zwraca listę zdobytych nagród.
+        """
         player = self.repo.get_player(player_id)
+        rewards_earned = []
         
         item_ids = self.game_rules['actions_to_items_mapping'].get(action)
         if item_ids:
@@ -39,8 +43,10 @@ class GameService:
             else:
                 selected_item_id = item_ids
             
-            player['inventory'][selected_item_id] = player['inventory'].get(selected_item_id, 0) + 1
-            logging.info(f"Player {player_id} received item: {selected_item_id}")
+            if selected_item_id:
+                player['inventory'][selected_item_id] = player['inventory'].get(selected_item_id, 0) + 1
+                logging.info(f"Player {player_id} received item: {selected_item_id}")
+                rewards_earned.append({"type": "item_received", "value": selected_item_id})
 
         facts = self._get_player_facts(player)
         
@@ -52,25 +58,32 @@ class GameService:
                     pysel_context[helper_id] = lambda *args: helper_func(*args)(extra_context=facts)
 
                 if pysel.Expression(quest_rule).evaluate(pysel_context):
-                    self.award_reward(player, quest['reward'])
+                    reward_info = self.award_reward(player, quest['reward'])
+                    if reward_info:
+                        rewards_earned.append(reward_info)
                     if not quest['repeatable']:
                         player['completed_quests'].append(quest['id'])
 
         self.repo.save_player(player)
+        return {"rewards": rewards_earned}
 
-    def award_reward(self, player: dict, reward_id: str):
+    def award_reward(self, player: dict, reward_id: str) -> Dict[str, Any] or None:
         reward = self.rewards_by_id.get(reward_id)
         if not reward:
             logging.error(f"Reward with id {reward_id} not found.")
-            return
+            return None
 
         if reward['type'] == 'title':
             if reward['value'] not in player['titles']:
                 player['titles'].append(reward['value'])
                 logging.info(f"Player earned title: {reward['value']}")
+                return {"type": "title_earned", "value": reward['value'], "message": reward.get('message')}
         elif reward['type'] == 'currency':
             player['currency'] = player.get('currency', 0) + reward['value']
             logging.info(f"Player received {reward['value']} currency.")
+            return {"type": "currency_received", "value": reward['value'], "message": reward.get('message')}
+        
+        return None
 
     def _get_player_facts(self, player: dict) -> Dict[str, Any]:
         rarity_counts = {}
@@ -81,10 +94,10 @@ class GameService:
                 rarity_counts[rarity] = rarity_counts.get(rarity, 0) + count
         
         return {
-            'inventory': player['inventory'],
-            'titles': player['titles'],
+            'inventory': player.get('inventory', {}),
+            'titles': player.get('titles', []),
             'rarity_counts': rarity_counts,
-            'currency': player['currency']
+            'currency': player.get('currency', 0)
         }
 
     def _get_random_item_by_rarity(self, item_ids: list):

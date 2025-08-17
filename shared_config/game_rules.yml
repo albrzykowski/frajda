@@ -1,18 +1,18 @@
 elements:
-  - id: fragment_czasu_a
-    name: Fragment Czasu A
+  - id: energy_cell_a
+    name: Energy Cell A
     rarity: common
-  - id: fragment_czasu_b
-    name: Fragment Czasu B
+  - id: energy_cell_b
+    name: Energy Cell B
     rarity: rare
-  - id: fragment_czasu_c
-    name: Fragment Czasu C
+  - id: energy_cell_c
+    name: Energy Cell C
     rarity: epic
-  - id: krysztal_mocy
-    name: Kryształ Mocy
+  - id: data_core
+    name: Data Core
     rarity: common
-  - id: krysztal_milosci
-    name: Kryształ Miłości
+  - id: security_key
+    name: Security Key
     rarity: rare
 
 rarity_probabilities:
@@ -21,22 +21,22 @@ rarity_probabilities:
   epic: 0.05
 
 rewards:
-  - id: reward_wladca_czasu
+  - id: reward_city_engineer
     type: title
-    value: "Władca Czasu"
-    message: "Udało Ci się! Odkryłeś tajemnicę świątyni i zdobywasz tytuł 'Władcy Czasu'."
-  - id: reward_odkrywca_reliktow
+    value: "City Engineer"
+    message: "You stabilized the city’s infrastructure and earned the title 'City Engineer'."
+  - id: reward_data_explorer
     type: title
-    value: "Odkrywca Reliktów"
-    message: "Udało Ci się! Otrzymujesz tytuł 'Odkrywcy Reliktów'!"
-  - id: reward_straznik_tajemnic
+    value: "Data Explorer"
+    message: "You accessed hidden archives and earned the title 'Data Explorer'."
+  - id: reward_network_guardian
     type: title
-    value: "Strażnik Tajemnic"
-    message: "Jesteś Strażnikiem Tajemnic! Otrzymujesz tytuł za zebranie cennych artefaktów."
-  - id: reward_monety_500
+    value: "Network Guardian"
+    message: "You secured critical systems and became a 'Network Guardian'."
+  - id: reward_credits_500
     type: currency
     value: 500
-    message: "Otrzymujesz 500 monet za ukończenie misji!"
+    message: "You received 500 credits for completing the mission!"
 
 helpers:
   - id: has_item
@@ -47,33 +47,33 @@ helpers:
     expression: "rarity_counts.get(rarity, 0) >= quantity"
 
 quests:
-  - id: quest_1_wir_czasu
-    name: Wieczny Wir Czasu
-    description: "Zbierz wszystkie trzy Artefakty Czasu, aby uciec ze świątyni."
+  - id: quest_1_power_grid
+    name: Power Grid Restoration
+    description: "Collect all three Energy Cells to restart the Warsaw 2040 power grid."
     repeatable: false
-    rule: "has_item('fragment_czasu_a', 1) && has_item('fragment_czasu_b', 1) && has_item('fragment_czasu_c', 1)"
-    reward: "reward_wladca_czasu"
+    rule: "has_item('energy_cell_a', 1) && has_item('energy_cell_b', 1) && has_item('energy_cell_c', 1)"
+    reward: "reward_city_engineer"
   
-  - id: quest_2_odkrywca
-    name: Odkrywca
-    description: "Odwiedź ukryty ołtarz. Wyzwanie można powtarzać wielokrotnie."
+  - id: quest_2_hidden_archive
+    name: Hidden Archive
+    description: "Access an old data archive in the underground metro system. This mission can be repeated."
     repeatable: true
-    rule: "has_item('krysztal_mocy', 1)"
-    reward: "reward_odkrywca_reliktow"
+    rule: "has_item('data_core', 1)"
+    reward: "reward_data_explorer"
   
-  - id: quest_3_lowca_tajemnic
-    name: Łowca Tajemnic
-    description: "Zbierz 1 przedmiot 'rare' i 1 'epic'."
+  - id: quest_3_cybersecurity
+    name: Cybersecurity Mission
+    description: "Collect 1 rare and 1 epic item to secure the city’s digital network."
     repeatable: false
     rule: "has_rarity('rare', 1) && has_rarity('epic', 1)"
-    reward: "reward_straznik_tajemnic"
+    reward: "reward_network_guardian"
 
 actions_to_items_mapping:
-  akcja_1_odwiedz_komnate:
-    - fragment_czasu_a
-    - fragment_czasu_b
-    - fragment_czasu_c
-  akcja_2_zapal_swiece: "fragment_czasu_b"
-  akcja_3_odczytaj_inskrypcje: "fragment_czasu_c"
-  akcja_4_odkryj_oltarz: "krysztal_mocy"
-  akcja_5_aktywuj_portal: "krysztal_milosci"
+  action_1_scan_substation:
+    - energy_cell_a
+    - energy_cell_b
+    - energy_cell_c
+  action_2_repair_terminal: "energy_cell_b"
+  action_3_decode_logs: "energy_cell_c"
+  action_4_access_archive: "data_core"
+  action_5_override_firewall: "security_key"

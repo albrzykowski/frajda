@@ -1,3 +1,7 @@
 Flask
+flask-socketio
+eventlet
 gunicorn
 pika
+aio-pika
+websocket-client

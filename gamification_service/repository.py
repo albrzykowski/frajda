@@ -6,7 +6,7 @@ import logging
 class Repository:
     def __init__(self):
         config = {}
-        with open(os.path.join(os.path.dirname(__file__), 'shared_config/config.json')) as f:
+        with open(os.path.join(os.path.dirname(__file__), '../shared_config/config.json')) as f:
             config = json.load(f)
 
         db_config = config['db_connection']

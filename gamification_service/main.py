@@ -9,12 +9,12 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 def main():
     config = {}
-    with open(os.path.join(os.path.dirname(__file__), 'shared_config/config.json')) as f:
+    with open(os.path.join(os.path.dirname(__file__), '../shared_config/config.json')) as f:
         config = json.load(f)
 
     repo = Repository()
     game_service = GameService(
-        game_rules_path=os.path.join(os.path.dirname(__file__), 'shared_config/game_rules.yml'),
+        game_rules_path=os.path.join(os.path.dirname(__file__), '../shared_config/game_rules.yml'),
         repo=repo
     )
 
@@ -22,12 +22,29 @@ def main():
     connection = pika.BlockingConnection(connection_params)
     channel = connection.channel()
     channel.queue_declare(queue=config['message_queue']['queue'], durable=True)
-    
+
     def callback(ch, method, properties, body):
         try:
             event = json.loads(body)
             logging.info(f"Received event: {event}")
-            game_service.process_action(event['player_id'], event['action'])
+            
+            # Process the action
+            result = game_service.process_action(event['player_id'], event['action'])
+            
+            # Publish response to response_queue
+            response_channel = connection.channel()
+            response_channel.queue_declare(queue=config['message_queue']['response_queue'], durable=True)
+            response_message = json.dumps({
+                "player_id": event['player_id'],
+                "result": result
+            })
+            response_channel.basic_publish(
+                exchange='',
+                routing_key=config['message_queue']['response_queue'],
+                body=response_message,
+                properties=pika.BasicProperties(delivery_mode=2)
+            )
+            
             ch.basic_ack(delivery_tag=method.delivery_tag)
         except Exception as e:
             logging.error(f"Error processing event: {e}")

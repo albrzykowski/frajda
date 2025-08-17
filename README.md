@@ -10,7 +10,7 @@ Frajda is designed as an asynchronous gamification engine. The core flow is:
 5. **Real-time Update**: `api_gateway` consumes messages from the response queue and emits notifications to connected clients via Socket.IO.
 
 ### Sequence Diagram
-```marmaid
+```mermaid
 sequenceDiagram
     participant Client as Client
     participant API as API Gateway

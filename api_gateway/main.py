@@ -1,11 +1,12 @@
 import os
 import logging
-from threading import Thread
 import json
 from flask import Flask, request, jsonify
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, join_room
 import pika
 import eventlet
+from eventlet.queue import Queue
+
 eventlet.monkey_patch()
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -21,8 +22,10 @@ RABBITMQ_VHOST = os.getenv("RABBITMQ_VHOST", "/")
 rabbitmq_url = f"amqp://{RABBITMQ_USER}:{RABBITMQ_PASS}@{RABBITMQ_HOST}:{RABBITMQ_PORT}{RABBITMQ_VHOST}"
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+# This change enables communication between multiple Gunicorn workers
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet', message_queue=rabbitmq_url)
 
+message_queue = Queue()
 connection_params = pika.URLParameters(rabbitmq_url)
 
 def get_channel():
@@ -37,14 +40,9 @@ def handle_action():
     try:
         data = request.json
         if not data or 'player_id' not in data or 'action' not in data:
-            logging.error("Invalid input data.")
             return jsonify({"error": "Invalid input data"}), 400
 
-        message = {
-            "player_id": data['player_id'],
-            "action": data['action']
-        }
-
+        message = {"player_id": data['player_id'], "action": data['action']}
         conn, ch = get_channel()
         ch.basic_publish(
             exchange='',
@@ -53,33 +51,39 @@ def handle_action():
             properties=pika.BasicProperties(delivery_mode=2)
         )
         conn.close()
-
         logging.info(f"Published message to queue: {message}")
         return jsonify({"status": "Action accepted for processing"}), 202
-
     except Exception as e:
         logging.error(f"Error processing request: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route("/test_emit")
-def test_emit():
-    socketio.emit("notification", {"msg": "hello"})
-    return {"status": "ok"}
+@socketio.on('connect')
+def handle_connect():
+    logging.info(f"Client connected: {request.sid}")
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    logging.info(f"Client disconnected: {request.sid}")
+
+@socketio.on('identify')
+def handle_identify(data):
+    player_id = data.get('player_id')
+    if player_id:
+        join_room(player_id)
+        logging.info(f"Client {request.sid} identified as {player_id} and joined room.")
 
 def on_message(ch, method, properties, body):
     try:
         response = json.loads(body)
-
-        # Emit asynchronously in the context of Socket.IO event loop
-        socketio.start_background_task(
-            socketio.emit, "notification", response
-        )
-
+        player_id = response.get('player_id')
+        if player_id:
+            message_queue.put((player_id, response))
+            logging.info(f"Queued message for room '{player_id}'")
+        else:
+            logging.warning(f"Received message without player_id: {response}")
         ch.basic_ack(delivery_tag=method.delivery_tag)
-        logging.info(f"Processed and emitted message: {response}")
     except Exception as e:
-        logging.error(f"Error handling message: {e}")
-
+        logging.error(f"Error in on_message callback: {e}")
 
 def start_listening():
     try:
@@ -94,13 +98,15 @@ def start_listening():
     except Exception as e:
         logging.error(f"Error in RabbitMQ listener: {e}")
 
-eventlet.spawn(start_listening)
-logging.info("Background listener task spawned with eventlet.")
+def message_emitter():
+    logging.info("Socket.IO emitter started.")
+    while True:
+        try:
+            player_id, response = message_queue.get()
+            socketio.emit("notification", response, room=player_id)
+            logging.info(f"Successfully emitted message to room '{player_id}'")
+        except Exception as e:
+            logging.error(f"Error in message_emitter: {e}")
 
-if __name__ == '__main__':
-    logging.info("Starting listener thread...")
-    listener_thread = Thread(target=start_listening)
-    listener_thread.daemon = True
-    listener_thread.start()
-    logging.info("Starting SocketIO server...")
-    socketio.run(app, host='0.0.0.0', port=8000, debug=True)
+eventlet.spawn(start_listening)
+eventlet.spawn(message_emitter)

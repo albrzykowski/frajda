@@ -1,67 +1,64 @@
-import json
-import threading
-import socketio
-import time
+import eventlet
+eventlet.monkey_patch()
 
-# --- WebSocket (Socket.IO) client ---
-sio = socketio.Client()
-connected = threading.Event()
+import json
+import socketio
+import requests
+import sys
+
+notification_received = eventlet.event.Event()
+sio = socketio.Client(logger=True, engineio_logger=True)
+PLAYER_ID = "user_3487"
 
 @sio.event
 def connect():
     print("Connected to Socket.IO server.")
-    connected.set()
+    sio.emit('identify', {'player_id': PLAYER_ID})
+    eventlet.spawn(send_http_request)
 
 @sio.on("notification")
 def on_notification(data):
-    print("=== ASYNC NOTIFICATION ===")
+    print("\n=== ASYNC NOTIFICATION ===")
     print(data)
-    # Odłącz po otrzymaniu powiadomienia
-    # sio.disconnect()
+    notification_received.send()
 
 @sio.event
 def disconnect():
     print("Disconnected from Socket.IO server.")
+    if not notification_received.ready():
+        notification_received.send()
 
-def send_request():
-    request_body = json.dumps({
-        "player_id": "user_1",
-        "action": "action_4_access_archive"
-    })
-    
+def send_http_request():
     try:
-        # Użyj biblioteki 'requests' do prostszego wysyłania żądań HTTP
-        import requests
-        
         url = "http://localhost:8000/actions"
         headers = {"Content-Type": "application/json"}
-        
+        request_body = json.dumps({
+            "player_id": PLAYER_ID,
+            "action": "action_4_access_archive"
+        })
+
         print("\n=== SENDING HTTP REQUEST ===")
         response = requests.post(url, data=request_body, headers=headers)
         
         print(f"HTTP RESPONSE: {response.status_code}")
         print(f"BODY: {response.json()}")
         
-    except ImportError:
-        print("Błąd: Biblioteka 'requests' nie jest zainstalowana. Użyj 'pip install requests'.")
     except Exception as e:
-        print(f"Błąd podczas wysyłania żądania HTTP: {e}")
+        print(f"Error during HTTP request: {e}", file=sys.stderr)
+        notification_received.send_exception(e)
 
 if __name__ == "__main__":
     print("Starting Socket.IO client...")
     
-    # Uruchom klienta Socket.IO w tle
-    sio.connect("http://localhost:8000", transports=['websocket'])
-    
-    # Poczekaj na nawiązanie połączenia
-    connected.wait(timeout=5)
-    
-    if connected.is_set():
-        # Uruchom wysyłanie żądania HTTP w osobnym wątku, aby nie blokować pętli nasłuchującej Socket.IO
-        http_thread = threading.Thread(target=send_request)
-        http_thread.start()
-    else:
-        print("Nie udało się połączyć z serwerem Socket.IO.")
-    
-    # Utrzymaj główny wątek, aby klient Socket.IO mógł działać
-    sio.wait()
+    try:
+        sio.connect("http://localhost:8000", transports=['websocket'])
+        notification_received.wait()
+
+    except (KeyboardInterrupt, SystemExit):
+        pass
+    except Exception as e:
+        print(f"An error occurred: {e}", file=sys.stderr)
+    finally:
+        if sio.connected:
+            sio.disconnect()
+        print("\nClient finished.")

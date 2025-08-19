@@ -8,3 +8,4 @@ websocket-client
 aiohttp
 dotenv
 requests
+kombu

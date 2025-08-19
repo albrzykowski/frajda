@@ -7,3 +7,4 @@ aio-pika
 websocket-client
 aiohttp
 dotenv
+requests

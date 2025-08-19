@@ -1,7 +1,7 @@
-# Frajda Platform - Technical Overview
+# Fraida Platform - Technical Overview
 
 ## System Flow
-Frajda is designed as an asynchronous gamification engine. The core flow is:
+Fraida is designed as an asynchronous gamification engine. The core flow is:
 
 1. **Client Action**: A client performs an action (e.g., "access archive") and sends an HTTP request to the `api_gateway`.
 2. **Message Queue**: `api_gateway` publishes the action message to RabbitMQ.
@@ -12,32 +12,35 @@ Frajda is designed as an asynchronous gamification engine. The core flow is:
 ### Sequence Diagram
 ```mermaid
 sequenceDiagram
-    participant Client as Client
-    participant API as API Gateway
-    participant MQ as RabbitMQ
-    participant GS as Gamification Service
-    participant DB as CouchDB
+   participant Client as Client
+   participant API as API Gateway
+   participant MQ as RabbitMQ
+   participant GS as Gamification Service
+   participant DB as CouchDB
 
-    Client->>API: POST /action (player_id, action) 
-    Note right of Client: HTTP request (sync)
-
-    API->>MQ: Publish message to "actions" queue
-    Note right of API: Async publish
-
-    MQ-->>GS: Deliver message from "actions" queue
-    Note right of MQ: Async delivery
-
-    GS->>DB: Update player state (CRUD)
-    Note right of GS: Sync DB operation
-
-    GS->>MQ: Publish result to "responses" queue
-    Note right of GS: Async publish
-
-    MQ-->>API: Deliver message from "responses" queue
-    Note right of MQ: Async delivery
-
-    API->>Client: Send WebSocket notification / HTTP 202 response
-    Note right of API: HTTP (sync) / WebSocket (async)
+   Client->>API: POST /actions (player_id, action)
+   Note right of Client: HTTP request (sync)
+   
+   API->>MQ: Publish message to "actions" queue
+   Note right of API: Async publish
+   
+   MQ-->>GS: Deliver message from "actions" queue
+   Note right of MQ: Async delivery
+   
+   GS->>DB: Update player state (CRUD)
+   Note right of GS: Sync DB operation
+   
+   GS-->>MQ: Publish result to "responses" queue
+   Note right of GS: Async publish
+   
+   MQ-->>API: Deliver message from "responses" queue
+   Note right of MQ: Async delivery
+   
+   API->>Client: HTTP 202 response
+   Note right of API: Sync HTTP response
+   
+   API-->>Client: WebSocket notification
+   Note right of API: Async notification
 ```
 
 ## Running with Docker
@@ -51,7 +54,7 @@ sequenceDiagram
 ## Components
 
 ### api_gateway
-- Exposes HTTP endpoint `/action` for client actions.
+- Exposes HTTP endpoint `/actions` for client actions.
 - Publishes action messages to RabbitMQ.
 - Subscribes to response queue to emit real-time notifications over Socket.IO.
 - Handles validation and logging.

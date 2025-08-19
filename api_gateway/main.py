@@ -32,7 +32,7 @@ def get_channel():
     ch.queue_declare(queue=RABBITMQ_RESPONSE_QUEUE, durable=True)
     return conn, ch
 
-@app.route('/action', methods=['POST'])
+@app.route('/actions', methods=['POST'])
 def handle_action():
     try:
         data = request.json
@@ -61,14 +61,25 @@ def handle_action():
         logging.error(f"Error processing request: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route("/test_emit")
+def test_emit():
+    socketio.emit("notification", {"msg": "hello"})
+    return {"status": "ok"}
+
 def on_message(ch, method, properties, body):
     try:
         response = json.loads(body)
-        socketio.emit('notification', response)
+
+        # Emit asynchronously in the context of Socket.IO event loop
+        socketio.start_background_task(
+            socketio.emit, "notification", response
+        )
+
         ch.basic_ack(delivery_tag=method.delivery_tag)
         logging.info(f"Processed and emitted message: {response}")
     except Exception as e:
         logging.error(f"Error handling message: {e}")
+
 
 def start_listening():
     try:
